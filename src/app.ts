@@ -6,7 +6,7 @@ const app: Application = express();
 app.use(cors());
 app.use(express.json());
 
-app.get("/", (req, res) => {
+app.get("/", (req: Request, res: Response) => {
   res.json({
     success: true,
     message: "Welcome to the API",

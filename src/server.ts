@@ -3,14 +3,11 @@ import { envVars } from "./config/env";
 import { client, connectDB } from "./config/db";
 
 async function main() {
- 
   await connectDB();
-
 
   const server = app.listen(envVars.port, () => {
     console.log(`Server is running on port ${envVars.port}`);
   });
-
 
   const shutdown = async () => {
     console.log("Shutting down server...");

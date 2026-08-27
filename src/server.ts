@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
+import mongoose from "mongoose";
 import app from "./app";
-import { MongoClient, ServerApiVersion } from "mongodb";
 
 dotenv.config();
 
@@ -12,19 +12,10 @@ if (!uri) {
   process.exit(1);
 }
 
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
-});
-
 async function main() {
   try {
-    await client.connect();
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged deployment. Successfully connected to MongoDB!");
+    await mongoose.connect(uri as string);
+    console.log("Successfully connected to MongoDB via Mongoose! 🚀");
 
     const server = app.listen(port, () => {
       console.log(`Server is running on port ${port}`);
@@ -32,7 +23,7 @@ async function main() {
 
     const shutdown = async () => {
       console.log("Shutting down server...");
-      await client.close();
+      await mongoose.connection.close();
       server.close(() => {
         console.log("HTTP server closed.");
         process.exit(0);

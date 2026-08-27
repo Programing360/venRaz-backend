@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import app from "./app";
 import { MongoClient, ServerApiVersion } from "mongodb";
+import { client, connectDB } from "./config/db";
 
 dotenv.config();
 
@@ -12,20 +13,11 @@ if (!uri) {
   process.exit(1);
 }
 
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
-});
 
 async function main() {
   try {
-    await client.connect();
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged deployment. Successfully connected to MongoDB!");
-
+    await connectDB();
+  
     const server = app.listen(port, () => {
       console.log(`Server is running on port ${port}`);
     });

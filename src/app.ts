@@ -12,7 +12,7 @@ app.use("/api/v1/shops", ShopRoutes);
 app.get("/", (req: Request, res: Response) => {
   res.json({
     success: true,
-    message: "Welcome to the API",
+    message: "Welcome to the VenRaz api ",
   });
 });
 

@@ -2,23 +2,24 @@ import { Server } from 'http';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import app from './app';
+import { envVars } from './config/env';
+import { connectDB } from './config/db';
 
 dotenv.config();
 
-const port = process.env.PORT || 5000;
+const port = envVars.port || process.env.PORT || 5000;
 const dbUri = process.env.MONGODB_URI || process.env.DATABASE_URL;
 
 let server: Server;
 
 async function main() {
   try {
-    if (!dbUri) {
-      console.error('FATAL ERROR: MONGODB_URI or DATABASE_URL environment variable is missing.');
-      process.exit(1);
+    if (dbUri) {
+      await mongoose.connect(dbUri);
+      console.log('⚡ [database]: Connected to MongoDB Atlas via Mongoose successfully!');
+    } else {
+      await connectDB();
     }
-
-    await mongoose.connect(dbUri);
-    console.log('⚡ [database]: Connected to MongoDB Atlas via Mongoose successfully!');
 
     server = app.listen(port, () => {
       console.log(`🚀 [server]: Server is running on port http://localhost:${port}`);

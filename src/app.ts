@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger';
 import router from './routes/index';
+import { ShopRoutes } from './routes/sop/shop.route';
 import { globalErrorHandler } from './middlewares/error.middleware';
 
 const app: Application = express();
@@ -16,8 +17,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Swagger API Documentation Route
+// Swagger API Documentation Routes (both /docs and /api-docs for compatibility)
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Mount Shop routes from origin/main
+app.use('/api/v1/shops', ShopRoutes);
 
 // Root API Endpoint
 app.get('/', (req: Request, res: Response) => {

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction, ErrorRequestHandler } from "express";
-import { AppError } from "../utils/AppError";
+import { AppError } from "../../utils/AppError";
 
 const sendErrorDev = (err: AppError | any, res: Response) => {
   res.status(err.statusCode || 500).json({
@@ -10,21 +10,15 @@ const sendErrorDev = (err: AppError | any, res: Response) => {
   });
 };
 
-
 const sendErrorProd = (err: AppError | any, res: Response) => {
- 
   if (err.isOperational) {
     res.status(err.statusCode).json({
       status: err.status,
       message: err.message,
     });
-  }
-  
-  else {
-  
+  } else {
     console.error("ERROR 💥:", err);
 
-   
     res.status(500).json({
       status: "error",
       message: "Something went wrong on the server!",
@@ -47,7 +41,6 @@ export const globalErrorHandler: ErrorRequestHandler = (
     let error = { ...err };
     error.message = err.message;
 
-   
     if (err.name === "CastError") {
       error = new AppError(`Invalid ${err.path}: ${err.value}`, 400);
     }

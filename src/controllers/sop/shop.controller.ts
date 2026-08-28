@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { createShopIntoDB } from "../services/shop.service";
+import { createShopIntoDB } from "../../services/sop/shop.service";
 
 export const createShop = async (req: Request, res: Response) => {
   try {

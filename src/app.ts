@@ -2,6 +2,8 @@ import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger';
 import router from './routes/index';
 import { globalErrorHandler } from './middlewares/error.middleware';
 
@@ -14,11 +16,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Swagger API Documentation Route
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 // Root API Endpoint
 app.get('/', (req: Request, res: Response) => {
   res.json({
     success: true,
     message: 'Welcome to VenRaz Multi-Vendor E-Commerce Backend API 🚀',
+    documentation: '/docs',
   });
 });
 

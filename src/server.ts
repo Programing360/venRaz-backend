@@ -1,6 +1,7 @@
 import app from "./app";
 import { envVars } from "./config/env";
-import { client, connectDB } from "./config/db";
+import { connectDB } from "./config/db";
+import mongoose from "mongoose";
 
 async function main() {
   await connectDB();
@@ -11,7 +12,7 @@ async function main() {
 
   const shutdown = async () => {
     console.log("Shutting down server...");
-    await client.close();
+    await mongoose.connection.close();
     server.close(() => {
       console.log("HTTP server closed.");
       process.exit(0);

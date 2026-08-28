@@ -1,5 +1,5 @@
 import express from "express";
-import { createShop } from "../../controllers/sop/shop.controller";
+import { createShop, getAllShop } from "../../controllers/sop/shop.controller";
 
 const router = express.Router();
 
@@ -34,5 +34,6 @@ const router = express.Router();
  */
 
 router.post("/create-shop", createShop);
+router.get("/", getAllShop);
 
 export const ShopRoutes = router;

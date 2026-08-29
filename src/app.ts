@@ -1,13 +1,14 @@
-import express, { Application, Request, Response } from 'express';
-import cors from 'cors';
-import cookieParser from 'cookie-parser';
-import helmet from 'helmet';
-import swaggerUi from 'swagger-ui-express';
-import { swaggerSpec } from './config/swagger';
-import router from './routes/index';
-import { ShopRoutes } from './routes/sop/shop.route';
-import { globalErrorHandler } from './middlewares/error.middleware';
-import { CategoryRoutes } from './routes/category/category.route';
+import express, { Application, Request, Response } from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./config/swagger";
+import router from "./routes/index";
+import { ShopRoutes } from "./routes/sop/shop.route";
+import { globalErrorHandler } from "./middlewares/error.middleware";
+import { CategoryRoutes } from "./routes/category/category.route";
+import { productsRoutes } from "./routes/products/product.route";
 
 const app: Application = express();
 
@@ -19,23 +20,24 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Swagger API Documentation Routes (both /docs and /api-docs for compatibility)
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Mount Shop routes from origin/main
-app.use('/api/v1/shops', ShopRoutes);
+app.use("/api/v1/shops", ShopRoutes);
 app.use("/api/v1/categories", CategoryRoutes);
+app.use("/api/v1/products", productsRoutes);
 
 // Root API Endpoint
-app.get('/', (req: Request, res: Response) => {
+app.get("/", (req: Request, res: Response) => {
   res.json({
     success: true,
-    message: 'Welcome to VenRaz Multi-Vendor E-Commerce Backend API 🚀',
-    documentation: '/docs',
+    message: "Welcome to VenRaz Multi-Vendor E-Commerce Backend API 🚀",
+    documentation: "/docs",
   });
 });
 
 // Application Routes
-app.use('/api/v1', router);
+app.use("/api/v1", router);
 
 // Not Found Handler
 app.use((req: Request, res: Response) => {

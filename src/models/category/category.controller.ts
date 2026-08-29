@@ -10,6 +10,7 @@ const createCategory = catchAsync(async (req: Request, res: Response) => {
 
   sendSuccessResponse(res, {
     statusCode: 201,
+    success: true,
     message: "Category created successfully",
     data: result,
   });
@@ -20,6 +21,7 @@ const getAllCategories = catchAsync(async (req: Request, res: Response) => {
 
   sendSuccessResponse(res, {
     statusCode: 200,
+    success: true,
     message: "Categories retrieved successfully",
     data: result,
   });
@@ -27,10 +29,11 @@ const getAllCategories = catchAsync(async (req: Request, res: Response) => {
 
 const updateCategory = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const result = await CategoryServices.updateCategoryInDB(id, req.body);
+  const result = await CategoryServices.updateCategoryInDB(id as string, req.body);
 
   sendSuccessResponse(res, {
     statusCode: 200,
+    success: true,
     message: "Category updated successfully",
     data: result,
   });
@@ -38,10 +41,11 @@ const updateCategory = catchAsync(async (req: Request, res: Response) => {
 
 const deleteCategory = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const result = await CategoryServices.deleteCategoryFromDB(id);
+  const result = await CategoryServices.deleteCategoryFromDB(id as string);
 
   sendSuccessResponse(res, {
     statusCode: 200,
+    success: true,
     message: "Category deleted successfully",
     data: result,
   });

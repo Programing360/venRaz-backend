@@ -1,23 +1,51 @@
-import express, { Application, Request, Response } from "express";
-import cors from "cors";
-import swaggerUi from "swagger-ui-express";
-import { swaggerSpec } from "./config/swagger";
-import { ShopRoutes } from "./routes/sop/shop.route";
+import express, { Application, Request, Response } from 'express';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger';
+import router from './routes/index';
+import { ShopRoutes } from './routes/sop/shop.route';
+import { globalErrorHandler } from './middlewares/error.middleware';
+import { CategoryRoutes } from './routes/category/category.route';
 
 const app: Application = express();
 
-app.use(cors());
+// Security and utility middlewares
+app.use(helmet());
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// Swagger API Documentation Routes (both /docs and /api-docs for compatibility)
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-app.use("/api/v1/shops", ShopRoutes);
+// Mount Shop routes from origin/main
+app.use('/api/v1/shops', ShopRoutes);
+app.use("/api/v1/categories", CategoryRoutes);
 
-app.get("/", (req: Request, res: Response) => {
+// Root API Endpoint
+app.get('/', (req: Request, res: Response) => {
   res.json({
     success: true,
-    message: "Welcome to the VenRaz api ",
+    message: 'Welcome to VenRaz Multi-Vendor E-Commerce Backend API 🚀',
+    documentation: '/docs',
   });
 });
+
+// Application Routes
+app.use('/api/v1', router);
+
+// Not Found Handler
+app.use((req: Request, res: Response) => {
+  res.status(404).json({
+    success: false,
+    message: `API Route Not Found: ${req.originalUrl}`,
+  });
+});
+
+// Global Error Handler
+app.use(globalErrorHandler);
 
 export default app;

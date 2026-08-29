@@ -1,7 +1,6 @@
 // src/app/modules/category/category.model.ts
-import { Schema, model } from "mongoose";
+import { CallbackError, Schema, model } from "mongoose";
 import { ICategory, CategoryModel } from "./category.interface";
-import { NextFunction } from "express";
 
 const categorySchema = new Schema<ICategory, CategoryModel>(
   {
@@ -30,14 +29,15 @@ const categorySchema = new Schema<ICategory, CategoryModel>(
 );
 
 // Filter out deleted items during queries
-categorySchema.pre("find", function (next) {
+categorySchema.pre("find", async function () {
   this.find({ isDeleted: { $ne: true } });
-  next();
+});
+categorySchema.pre("findOne", async function () {
+  this.find({ isDeleted: { $ne: true } });
 });
 
-categorySchema.pre("findOne", function (next) {
+categorySchema.pre("findOneAndUpdate", async function () {
   this.find({ isDeleted: { $ne: true } });
-  next();
 });
 
 export const Category = model<ICategory, CategoryModel>(

@@ -12,7 +12,7 @@ const options: swaggerJSDoc.Options = {
     },
     servers: [
       {
-        url: `http://localhost:${envVars.port}/api/v1`,
+        url: `http://localhost:${envVars.port || 5000}/api/v1`,
         description: "Development Server",
       },
     ],
@@ -27,7 +27,13 @@ const options: swaggerJSDoc.Options = {
     },
     security: [{ bearerAuth: [] }],
   },
-  apis: ["./src/routes/**/*.ts"],
+  apis: [
+    "./src/modules/**/*.route.ts",
+    "./src/modules/**/*.controller.ts",
+    "./src/routes/**/*.ts",
+    "./src/routes/*.ts",
+    "./src/**/*.ts",
+  ],
 };
 
 export const swaggerSpec = swaggerJSDoc(options);

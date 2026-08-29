@@ -1,5 +1,7 @@
 import express from "express";
-import { createShop, getAllShop } from "../../controllers/sop/shop.controller";
+import { createShop } from "../../controllers/sop/shop.controller";
+import { getAllShop } from "../../controllers/sop/shop.get.controller";
+import { getMyShops } from "../../controllers/sop/shop.my.get.controller";
 
 const router = express.Router();
 
@@ -35,5 +37,5 @@ const router = express.Router();
 
 router.post("/create-shop", createShop);
 router.get("/", getAllShop);
-
+router.get("/my-shop/:ownerId", getMyShops);
 export const ShopRoutes = router;

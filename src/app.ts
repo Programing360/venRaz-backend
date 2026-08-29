@@ -7,6 +7,7 @@ import { swaggerSpec } from './config/swagger';
 import router from './routes/index';
 import { ShopRoutes } from './routes/sop/shop.route';
 import { globalErrorHandler } from './middlewares/error.middleware';
+import { CategoryRoutes } from './routes/category/category.route';
 
 const app: Application = express();
 
@@ -18,11 +19,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Swagger API Documentation Routes (both /docs and /api-docs for compatibility)
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Mount Shop routes from origin/main
 app.use('/api/v1/shops', ShopRoutes);
+app.use("/api/v1/categories", CategoryRoutes);
 
 // Root API Endpoint
 app.get('/', (req: Request, res: Response) => {

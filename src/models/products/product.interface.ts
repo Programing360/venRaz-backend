@@ -8,18 +8,33 @@ export type ProductStatus =
   | "hidden";
 
 export interface IProducts {
+  _id?: Types.ObjectId;
   name: string;
+  slug: string;
   description: string;
   images: string[];
   price: number;
   discount?: number;
   stock: number;
+  
+  // Relational IDs
   category: Types.ObjectId;
   shop: Types.ObjectId;
+  seller: Types.ObjectId;
+  
   brand?: string;
   rating: number;
+  totalReviews?: number;
   soldCount: number;
   status: ProductStatus;
-  createdAt: string;
-  updatedAt: string;
+
+  // Home Page Section Specific Fields
+  isFeatured?: boolean;
+  isFlashSale?: boolean;
+  flashSalePrice?: number;
+  flashSaleEndDate?: Date | string;
+
+  isDeleted?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }

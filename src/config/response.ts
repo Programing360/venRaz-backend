@@ -3,7 +3,7 @@ import { Response } from "express";
 // Success Response Types
 export interface TSuccessResponse<T> {
   statusCode: number;
-  success: boolean;
+  success?: boolean;
   message: string;
   meta?: {
     page?: number;

@@ -1,12 +1,14 @@
 import { Request, Response } from "express";
-import { createProductIntoDB } from "./product.service";
+import { createProductIntoDB, ProductServices } from "./product.service";
+import { catchAsync } from "../../utils/catchAsync";
+import { sendSuccessResponse } from "../../config/response";
 
 export const createProducts = async (req: Request, res: Response) => {
   try {
     const productData = req.body;
     const result = await createProductIntoDB(productData);
-    return res.status(201).json({
-      success: true,
+    sendSuccessResponse(res, {
+      statusCode: 201,
       message: "Product and Collection created successfully!",
       data: result,
     });
@@ -17,4 +19,56 @@ export const createProducts = async (req: Request, res: Response) => {
       error,
     });
   }
+};
+const getHomeSections = catchAsync(async (req: Request, res: Response) => {
+  const result = await ProductServices.getHomeSections();
+  // return res.status(200).json({
+  //   success: true,
+  //   message: "Home section products retrieved successfully",
+  //   data: result,
+  // });
+  sendSuccessResponse(res, {
+    statusCode: 200,
+    message: "Home section products retrieved successfully",
+    data: result,
+  });
+});
+
+const getFlashSaleProducts = catchAsync(async (req: Request, res: Response) => {
+  const limit = Number(req.query.limit) || 10;
+  const result = await ProductServices.getFlashSaleProducts(limit);
+  sendSuccessResponse(res, {
+    statusCode: 200,
+    message: "Flash sale products retrieved successfully",
+    data: result,
+  });
+});
+
+const getTopRatedProducts = catchAsync(async (req: Request, res: Response) => {
+  const limit = Number(req.query.limit) || 10;
+  const result = await ProductServices.getTopRatedProducts(limit);
+  sendSuccessResponse(res, {
+    statusCode: 200,
+    message: "Top rated products retrieved successfully",
+    data: result,
+  });
+});
+
+const getNewArrivalProducts = catchAsync(
+  async (req: Request, res: Response) => {
+    const limit = Number(req.query.limit) || 10;
+    const result = await ProductServices.getNewArrivalProducts(limit);
+    sendSuccessResponse(res, {
+      statusCode: 200,
+      message: "New arrival products retrieved successfully",
+      data: result,
+    });
+  },
+);
+
+export const ProductControllers = {
+  getHomeSections,
+  getFlashSaleProducts,
+  getTopRatedProducts,
+  getNewArrivalProducts,
 };

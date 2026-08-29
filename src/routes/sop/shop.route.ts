@@ -12,6 +12,8 @@ const router = express.Router();
  *     summary: Create a new shop
  *     tags:
  *       - Shop
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -34,8 +36,43 @@ const router = express.Router();
  *       400:
  *         description: Bad request
  */
+router.post("/create-shop", createShop);
 
-router.post("/create-shop", createShop, );
+/**
+ * @swagger
+ * /api/v1/shops:
+ *   get:
+ *     summary: Get all shops
+ *     tags:
+ *       - Shop
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved all shops
+ *       500:
+ *         description: Server error
+ */
 router.get("/", getAllShop);
+
+/**
+ * @swagger
+ * /api/v1/shops/my-shop/{ownerId}:
+ *   get:
+ *     summary: Get shops owned by a specific user
+ *     tags:
+ *       - Shop
+ *     parameters:
+ *       - in: path
+ *         name: ownerId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique ID of the owner
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved user shops
+ *       404:
+ *         description: No shops found for this owner
+ */
 router.get("/my-shop/:ownerId", getMyShops);
+
 export const ShopRoutes = router;

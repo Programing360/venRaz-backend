@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const app_1 = __importDefault(require("./app"));
 const env_1 = require("./config/env");
 const db_1 = require("./config/db");
+const mongoose_1 = __importDefault(require("mongoose"));
 async function main() {
     await (0, db_1.connectDB)();
     const server = app_1.default.listen(env_1.envVars.port, () => {
@@ -13,7 +14,7 @@ async function main() {
     });
     const shutdown = async () => {
         console.log("Shutting down server...");
-        await db_1.client.close();
+        await mongoose_1.default.connection.close();
         server.close(() => {
             console.log("HTTP server closed.");
             process.exit(0);

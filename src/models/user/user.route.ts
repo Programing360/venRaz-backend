@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { UserController } from './user.controller';
+import { WishlistController } from '../wishlist/wishlist.controller';
 import { authMiddleware } from '../../middlewares/auth.middleware';
 import { roleMiddleware } from '../../middlewares/role.middleware';
 import { upload } from '../../middlewares/upload.middleware';
@@ -28,6 +29,28 @@ router.get(
   authMiddleware(),
   roleMiddleware('user', 'moderator', 'admin'),
   UserController.getProfile
+);
+
+/**
+ * @openapi
+ * /users/dashboard-overview:
+ *   get:
+ *     summary: Get user dashboard statistics overview
+ *     tags:
+ *       - Wishlist & User Dashboard (Member 3)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User dashboard overview statistics fetched successfully
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+  '/dashboard-overview',
+  authMiddleware(),
+  roleMiddleware('user', 'moderator', 'admin'),
+  WishlistController.getUserDashboardOverview
 );
 
 /**

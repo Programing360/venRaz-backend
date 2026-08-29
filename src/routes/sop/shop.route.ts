@@ -74,5 +74,26 @@ router.get("/", getAllShop);
  *         description: No shops found for this owner
  */
 router.get("/my-shop/:ownerId", getMyShops);
+/**
+ * @swagger
+ * /api/v1/shops/update/my-shop/{ownerId}:
+ *   patch:
+ *     summary: update shops owned by a specific user
+ *     tags:
+ *       - Shop
+ *     parameters:
+ *       - in: path
+ *         name: ownerId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique ID of the owner
+ *     responses:
+ *       200:
+ *         description: Successfully update user shops
+ *       404:
+ *         description: No shops found for this owner
+ */
+router.patch("/update/my-shop/:ownerId", getMyShops);
 
 export const ShopRoutes = router;

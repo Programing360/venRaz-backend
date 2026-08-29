@@ -35,7 +35,7 @@ const router = express.Router();
  *         description: Bad request
  */
 
-router.post("/create-shop", createShop);
+router.post("/create-shop", createShop, );
 router.get("/", getAllShop);
 router.get("/my-shop/:ownerId", getMyShops);
 export const ShopRoutes = router;

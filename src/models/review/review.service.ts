@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { Review } from './review.model';
 import { ICreateReviewPayload, IReviewDocument } from './review.interface';
-import { ProductModel } from '../products/product.model';
+import { Product } from '../products/product.model';
 import { Shop } from '../sop/sop.model';
 
 const addReviewInDB = async (
@@ -14,7 +14,7 @@ const addReviewInDB = async (
     throw { statusCode: 400, message: 'Invalid product ID format' };
   }
 
-  const product = await ProductModel.findById(productId);
+  const product = await Product.findById(productId);
   if (!product) {
     throw { statusCode: 404, message: 'Product not found!' };
   }
@@ -39,7 +39,7 @@ const addReviewInDB = async (
         ) / 10
       : 0;
 
-  await ProductModel.findByIdAndUpdate(productId, {
+  await Product.findByIdAndUpdate(productId, {
     rating: avgRating,
     totalReviews,
   });
@@ -47,8 +47,8 @@ const addReviewInDB = async (
   // Algorithm 2: Recalculate and update Shop rating
   if (product.shop) {
     try {
-      const shopProducts = await ProductModel.find({ shop: product.shop });
-      const shopProductIds = shopProducts.map((p) => p._id);
+      const shopProducts = await Product.find({ shop: product.shop });
+      const shopProductIds = shopProducts.map((p: any) => p._id);
 
       const shopReviews = await Review.find({
         productId: { $in: shopProductIds },
@@ -93,7 +93,7 @@ const getShopProductsFromDB = async (shopId: string) => {
     throw { statusCode: 400, message: 'Invalid shop ID format' };
   }
 
-  const products = await ProductModel.find({
+  const products = await Product.find({
     shop: new mongoose.Types.ObjectId(shopId),
     isDeleted: { $ne: true },
   }).sort({ createdAt: -1 });

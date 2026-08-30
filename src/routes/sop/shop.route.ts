@@ -2,6 +2,7 @@ import express from "express";
 import { createShop } from "../../controllers/sop/shop.controller";
 import { getAllShop } from "../../controllers/sop/shop.get.controller";
 import { getMyShops } from "../../controllers/sop/shop.my.get.controller";
+import { ReviewController } from "../../models/review/review.controller";
 
 const router = express.Router();
 
@@ -74,6 +75,7 @@ router.get("/", getAllShop);
  *         description: No shops found for this owner
  */
 router.get("/my-shop/:ownerId", getMyShops);
+
 /**
  * @swagger
  * /api/v1/shops/update/my-shop/{ownerId}:
@@ -95,5 +97,27 @@ router.get("/my-shop/:ownerId", getMyShops);
  *         description: No shops found for this owner
  */
 router.patch("/update/my-shop/:ownerId", getMyShops);
+
+/**
+ * @openapi
+ * /api/v1/shops/{shopId}/products:
+ *   get:
+ *     summary: Get all products belonging to a specific shop (Public)
+ *     tags:
+ *       - Review System & Shop Products (Member 3)
+ *     parameters:
+ *       - in: path
+ *         name: shopId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Unique ID of the shop
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved shop products
+ *       400:
+ *         description: Invalid shop ID format
+ */
+router.get("/:shopId/products", ReviewController.getShopProducts);
 
 export const ShopRoutes = router;

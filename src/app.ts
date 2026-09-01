@@ -10,6 +10,7 @@ import { globalErrorHandler } from "./middlewares/error.middleware";
 import { CategoryRoutes } from "./routes/category/category.route";
 import { productsRoutes } from "./routes/products/product.route";
 import { SellerProductRoutes } from "./routes/seller/product.route";
+import { OrderRoutes } from "./routes/order/order.route";
 
 const app: Application = express();
 
@@ -28,6 +29,7 @@ app.use("/api/v1/shops", ShopRoutes);
 app.use("/api/v1/categories", CategoryRoutes);
 app.use("/api/v1/products", productsRoutes);
 app.use("/api/v1/products/seller", SellerProductRoutes);
+app.use("/api/v1/orders", OrderRoutes);
 
 // Root API Endpoint
 app.get("/", (req: Request, res: Response) => {

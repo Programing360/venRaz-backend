@@ -11,6 +11,7 @@ import { CategoryRoutes } from "./routes/category/category.route";
 import { productsRoutes } from "./routes/products/product.route";
 import { SellerProductRoutes } from "./routes/seller/product.route";
 import { OrderRoutes } from "./routes/order/order.route";
+import { SellerOrderRoutes } from "./models/SellerOrderController/sellerOrder.route";
 
 const app: Application = express();
 
@@ -30,6 +31,7 @@ app.use("/api/v1/categories", CategoryRoutes);
 app.use("/api/v1/products", productsRoutes);
 app.use("/api/v1/products/seller", SellerProductRoutes);
 app.use("/api/v1/orders", OrderRoutes);
+app.use("/api/v1/seller", SellerOrderRoutes);
 
 // Root API Endpoint
 app.get("/", (req: Request, res: Response) => {

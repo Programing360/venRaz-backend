@@ -19,7 +19,7 @@ const createCategoryIntoDB = async (payload: ICategory) => {
 
 const getAllCategoriesFromDB = async (query: Record<string, unknown>) => {
   const filter: Record<string, unknown> = { isDeleted: false };
-  
+
   // Public home page only gets active categories if specified
   if (query.activeOnly === "true") {
     filter.isActive = true;
@@ -56,7 +56,7 @@ const deleteCategoryFromDB = async (id: string) => {
   const result = await Category.findByIdAndUpdate(
     id,
     { isDeleted: true },
-    { new: true }
+    { new: true },
   );
   return result;
 };

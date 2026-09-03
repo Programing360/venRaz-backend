@@ -1,4 +1,4 @@
-export type ShopStatus = "draft" | "pending" | "approved" | "active";
+export type ShopStatus = "draft" | "pending" | "approved" | "active" | "rejected" | "suspended";
 
 export interface IShop {
   ownerId: string;
@@ -7,4 +7,6 @@ export interface IShop {
   category: string;
   phone: string;
   status?: ShopStatus;
+  rejectionReason?: string;
+  rating?: number;
 }

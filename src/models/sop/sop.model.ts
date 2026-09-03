@@ -10,8 +10,16 @@ const shopSchema = new Schema<IShop>(
     phone: { type: String, required: true },
     status: {
       type: String,
-      enum: ["draft", "pending", "approved", "active"],
+      enum: ["draft", "pending", "approved", "active", "rejected", "suspended"],
       default: "pending",
+    },
+    rejectionReason: {
+      type: String,
+      default: "",
+    },
+    rating: {
+      type: Number,
+      default: 0,
     },
   },
   { timestamps: true },

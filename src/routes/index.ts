@@ -4,10 +4,15 @@ import { WishlistRoutes } from '../models/wishlist/wishlist.route';
 import { ReviewRoutes } from '../models/review/review.route';
 import { AddressRoutes } from '../models/address/address.route';
 import { RecentViewRoutes } from '../models/recentView/recentView.route';
+import { AdminRoutes } from '../models/admin/admin.route';
 
 const router = Router();
 
 const moduleRoutes = [
+  {
+    path: '/admin',
+    route: AdminRoutes,
+  },
   {
     path: '/users',
     route: UserRoutes,

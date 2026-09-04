@@ -20,6 +20,31 @@ export const createProducts = async (req: Request, res: Response) => {
     });
   }
 };
+
+const getAllProducts = catchAsync(async (req: Request, res: Response) => {
+  const result = await ProductServices.getAllProductsFromDB(req.query);
+
+  sendSuccessResponse(res, {
+    statusCode: 200,
+    message: "Products retrieved successfully",
+    meta: result.meta,
+    data: result.data,
+  });
+});
+
+const getSingleProduct = catchAsync(async (req: Request, res: Response) => {
+  const { productId } = req.params;
+  const result = await ProductServices.getSingleProductFromDB(
+    productId as string,
+  );
+
+  sendSuccessResponse(res, {
+    statusCode: 200,
+    message: "Product details retrieved successfully",
+    data: result,
+  });
+});
+
 const getHomeSections = catchAsync(async (req: Request, res: Response) => {
   const result = await ProductServices.getHomeSections();
   // return res.status(200).json({
@@ -67,6 +92,8 @@ const getNewArrivalProducts = catchAsync(
 );
 
 export const ProductControllers = {
+  getAllProducts,
+  getSingleProduct,
   getHomeSections,
   getFlashSaleProducts,
   getTopRatedProducts,

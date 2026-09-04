@@ -1,6 +1,8 @@
-
 import express from "express";
-import { createProducts, ProductControllers } from "../../models/products/product.controller";
+import {
+  createProducts,
+  ProductControllers,
+} from "../../models/products/product.controller";
 
 const router = express.Router();
 
@@ -85,6 +87,80 @@ const router = express.Router();
  *         description: Bad request
  */
 router.post("/", createProducts);
+
+/**
+ * @swagger
+ * /api/v1/products:
+ *   get:
+ *     summary: Get all products with search, filtering, sorting, and pagination
+ *     tags: [Products]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search keyword (matches name, description, or brand)
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Category ObjectId
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *         description: Minimum price filter
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *         description: Maximum price filter
+ *       - in: query
+ *         name: sort
+ *         schema:
+ *           type: string
+ *           enum: [price-asc, price-desc, rating, oldest]
+ *         description: Sorting criteria
+ *     responses:
+ *       200:
+ *         description: Products retrieved successfully
+ */
+router.get("/", ProductControllers.getAllProducts);
+
+/**
+ * @swagger
+ * /api/v1/products/{productId}:
+ *   get:
+ *     summary: Get product details by ID (Populated with Shop, Category, and Seller)
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: productId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique product ObjectId
+ *     responses:
+ *       200:
+ *         description: Product details retrieved successfully
+ *       404:
+ *         description: Product not found
+ */
+router.get("/:productId", ProductControllers.getSingleProduct);
+
+export const ProductRoutes = router;
 
 /**
  * @swagger

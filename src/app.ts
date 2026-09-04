@@ -5,13 +5,16 @@ import helmet from "helmet";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger";
 import router from "./routes/index";
-import { ShopRoutes } from "./routes/sop/shop.route";
 import { globalErrorHandler } from "./middlewares/error.middleware";
+
 import { CategoryRoutes } from "./routes/category/category.route";
 import { productsRoutes } from "./routes/products/product.route";
 import { SellerProductRoutes } from "./routes/seller/product.route";
 import { OrderRoutes } from "./routes/order/order.route";
 import { SellerOrderRoutes } from "./models/SellerOrderController/sellerOrder.route";
+import { ShopRoutes } from "./routes/sop/shop.route";
+
+
 
 const app: Application = express();
 
@@ -22,8 +25,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Swagger API Documentation Routes (both /docs and /api-docs for compatibility)
+// Swagger API Documentation Routes
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 
 // Mount Shop routes from origin/main
 app.use("/api/v1/shops", ShopRoutes);
@@ -33,16 +37,17 @@ app.use("/api/v1/products/seller", SellerProductRoutes);
 app.use("/api/v1/orders", OrderRoutes);
 app.use("/api/v1/seller", SellerOrderRoutes);
 
+
 // Root API Endpoint
 app.get("/", (req: Request, res: Response) => {
   res.json({
     success: true,
     message: "Welcome to VenRaz Multi-Vendor E-Commerce Backend API 🚀",
-    documentation: "/docs",
+    documentation: "/api-docs",
   });
 });
 
-// Application Routes
+// Centralized Application Routes (/api/v1/...)
 app.use("/api/v1", router);
 
 // Not Found Handler

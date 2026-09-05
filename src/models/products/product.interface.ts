@@ -16,12 +16,12 @@ export interface IProducts {
   price: number;
   discount?: number;
   stock: number;
-  
+
   // Relational IDs
   category: Types.ObjectId;
   shop: Types.ObjectId;
   seller: Types.ObjectId;
-  
+
   brand?: string;
   rating: number;
   totalReviews?: number;
@@ -37,4 +37,15 @@ export interface IProducts {
   isDeleted?: boolean;
   createdAt?: string;
   updatedAt?: string;
+}
+
+// Query Parameters Type Definition
+export interface IProductQuery {
+  page?: string;
+  limit?: string;
+  search?: string;
+  category?: string;
+  minPrice?: string;
+  maxPrice?: string;
+  sort?: string;
 }

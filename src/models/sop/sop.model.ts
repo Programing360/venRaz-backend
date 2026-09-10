@@ -6,6 +6,7 @@ const shopSchema = new Schema<IShop>(
     ownerId: { type: String, required: true },
     name: { type: String, required: true },
     description: { type: String, required: true },
+    images: { type: [String], required: true },
     category: { type: String, required: true },
     phone: { type: String, required: true },
     status: {

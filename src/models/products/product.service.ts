@@ -1,14 +1,176 @@
 import { Types } from "mongoose";
+import slugify from "slugify";
+import { v2 as cloudinary } from "cloudinary";
 import { IProductQuery, IProducts } from "./product.interface";
 import { Product } from "./product.model";
+import { Shop } from "../sop/sop.model";
 import { getBaseProductPipeline } from "./product.pipeline";
+import { parseSearchQueryWithAI } from "../../services/ai/ai.service";
+import { AppError } from "../../utils/AppError";
+// AI Search Service Import
 
-export const createProductIntoDB = async (payload: IProducts) => {
-  const result = await Product.create(payload);
-  return result;
+// Cloudinary Configuration
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+export interface ICreateProductInput {
+  payload: Partial<IProducts> & Record<string, unknown>;
+  files: Express.Multer.File[];
+  sellerId: string;
+  shopId?: string;
+  userId?: string;
+}
+
+/**
+ * FormData থেকে আসা string মানগুলোকে যথাযথ টাইপে রূপান্তর করে
+ */
+const normalizeFormValue = (val: unknown): unknown => {
+  if (val === "true") return true;
+  if (val === "false") return false;
+  if (val === "" || val === null || val === undefined) return undefined;
+  return val;
 };
 
-const getAllProductsFromDB = async (query: IProductQuery) => {
+const normalizePayload = (
+  payload: ICreateProductInput["payload"],
+): Partial<IProducts> & Record<string, unknown> => {
+  const normalized: Partial<IProducts> & Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(payload)) {
+    normalized[key] = normalizeFormValue(value);
+    if (["price", "discount", "stock", "flashSalePrice"].includes(key)) {
+      const num = Number(value);
+      normalized[key] = Number.isFinite(num) ? num : undefined;
+    }
+  }
+  return normalized;
+};
+
+/**
+ * Cloudinary-এ ছবি upload করে (Auto Background Removal সাপোর্টেড না হলে fallback)
+ */
+const uploadImageToCloudinary = (
+  file: Express.Multer.File,
+): Promise<string> => {
+  if (!process.env.CLOUDINARY_CLOUD_NAME) {
+    console.warn("⚠️ Cloudinary keys not configured, skipping image upload");
+    return Promise.resolve("");
+  }
+
+  return new Promise((resolve, reject) => {
+    const attempt = (
+      options: { folder: string; background_removal?: string },
+    ) => {
+      const stream = cloudinary.uploader.upload_stream(
+        options,
+        (error, result) => {
+          if (error) {
+            if (options.background_removal) {
+              // Premium feature unsupported -> retry without it
+              ordinaryUpload();
+            } else {
+              reject(error);
+            }
+            return;
+          }
+          resolve(result?.secure_url || "");
+        },
+      );
+      stream.end(file.buffer);
+    };
+
+    const ordinaryUpload = () => attempt({ folder: "products" });
+    attempt({ folder: "products", background_removal: "cloudinary_ai" });
+  });
+};
+
+/**
+ * 1. Create Product with Cloudinary Auto-Background Removal
+ */
+export const createProductIntoDB = async ({
+  payload,
+  files,
+  sellerId,
+  shopId,
+  userId,
+}: ICreateProductInput) => {
+  const productData = normalizePayload(payload);
+
+  if (!productData.name || !productData.name.trim()) {
+    throw new AppError("Product name is required", 400);
+  }
+
+  // Unique slug generate
+  let slug = slugify(String(productData.name), { lower: true, strict: true });
+  if (!slug) slug = `product-${Date.now()}`;
+  while (await Product.exists({ slug })) {
+    slug = `${slugify(String(productData.name), {
+      lower: true,
+      strict: true,
+    })}-${Math.random().toString(36).slice(2, 7)}`;
+  }
+  productData.slug = slug;
+
+  // Upload images (if uploaded)
+  const imageUrls: string[] = [];
+  if (files && files.length > 0) {
+    for (const file of files) {
+      const url = await uploadImageToCloudinary(file);
+      if (url) imageUrls.push(url);
+    }
+  }
+
+  const existingImages: string[] = Array.isArray(productData.images)
+    ? (productData.images as string[]).filter(Boolean)
+    : [];
+  const images = [...existingImages, ...imageUrls];
+  if (images.length === 0) {
+    throw new AppError("At least one product image is required", 400);
+  }
+  productData.images = images;
+  productData.description = productData.description || productData.name;
+
+  // category resolve (required ObjectId)
+  const categoryValue = productData.category;
+  if (
+    typeof categoryValue !== "string" ||
+    !Types.ObjectId.isValid(categoryValue)
+  ) {
+    throw new AppError("A valid category ID is required", 400);
+  }
+  productData.category = new Types.ObjectId(categoryValue);
+
+  // seller resolve
+  const seller = sellerId && Types.ObjectId.isValid(sellerId) ? sellerId : userId;
+  if (!seller || !Types.ObjectId.isValid(seller)) {
+    throw new AppError("Seller is not authenticated", 401);
+  }
+  productData.seller = new Types.ObjectId(seller);
+
+  // shop resolve (body -> owner's shop -> fail)
+  if (shopId && Types.ObjectId.isValid(shopId)) {
+    productData.shop = new Types.ObjectId(shopId as string);
+  } else {
+    const shop = await Shop.findOne({ ownerId: seller as string });
+    if (shop) {
+      productData.shop = shop._id;
+    }
+  }
+  if (!productData.shop) {
+    throw new AppError("Shop not found for this seller. Create a shop first.", 400);
+  }
+
+  return await Product.create(productData);
+};
+
+/**
+ * 2. Get All Products with Normal + AI Smart Search Support
+ */
+const getAllProductsFromDB = async (
+  query: IProductQuery & { useAI?: string },
+) => {
   const {
     page = "1",
     limit = "10",
@@ -17,40 +179,70 @@ const getAllProductsFromDB = async (query: IProductQuery) => {
     minPrice,
     maxPrice,
     sort,
+    useAI,
   } = query;
 
   const pageNumber = Math.max(1, Number(page));
   const limitNumber = Math.max(1, Number(limit));
   const skip = (pageNumber - 1) * limitNumber;
 
-  // Dynamic Match Conditions Construction
   const matchConditions: Record<string, unknown> = {
     isDeleted: { $ne: true },
   };
 
-  // Search by Name, Description, or Brand
-  if (search) {
+  let searchKeyword = search;
+  let targetCategory = category;
+  let computedMinPrice = minPrice;
+  let computedMaxPrice = maxPrice;
+
+  // 🤖 AI Smart Search Activation (If useAI === "true")
+  if (search && useAI === "true") {
+    try {
+      const aiParsed = await parseSearchQueryWithAI(search);
+      if (aiParsed.searchKeyword) searchKeyword = aiParsed.searchKeyword;
+      if (aiParsed.category && !targetCategory)
+        targetCategory = aiParsed.category;
+      if (aiParsed.minPrice && !computedMinPrice)
+        computedMinPrice = String(aiParsed.minPrice);
+      if (aiParsed.maxPrice && !computedMaxPrice)
+        computedMaxPrice = String(aiParsed.maxPrice);
+    } catch (error) {
+      console.error(
+        "AI Search Parse Error, falling back to standard search:",
+        error,
+      );
+    }
+  }
+
+  // Match Search Keyword across Name, Description, and Brand
+  if (searchKeyword) {
     matchConditions.$or = [
-      { name: { $regex: search, $options: "i" } },
-      { description: { $regex: search, $options: "i" } },
-      { brand: { $regex: search, $options: "i" } },
+      { name: { $regex: searchKeyword, $options: "i" } },
+      { description: { $regex: searchKeyword, $options: "i" } },
+      { brand: { $regex: searchKeyword, $options: "i" } },
     ];
   }
 
   // Filter by Category
-  if (category && Types.ObjectId.isValid(category)) {
-    matchConditions.category = new Types.ObjectId(category);
+  if (targetCategory) {
+    if (Types.ObjectId.isValid(targetCategory)) {
+      matchConditions.category = new Types.ObjectId(targetCategory);
+    } else {
+      matchConditions.category = {
+        $regex: new RegExp(`^${targetCategory}$`, "i"),
+      };
+    }
   }
 
   // Filter by Price Range
-  if (minPrice || maxPrice) {
+  if (computedMinPrice || computedMaxPrice) {
     const priceCondition: Record<string, number> = {};
-    if (minPrice) priceCondition.$gte = Number(minPrice);
-    if (maxPrice) priceCondition.$lte = Number(maxPrice);
+    if (computedMinPrice) priceCondition.$gte = Number(computedMinPrice);
+    if (computedMaxPrice) priceCondition.$lte = Number(computedMaxPrice);
     matchConditions.price = priceCondition;
   }
 
-  // Dynamic Sorting Logic
+  // Dynamic Sorting
   let sortCondition: Record<string, 1 | -1> = { createdAt: -1 };
   if (sort) {
     if (sort === "price-asc") sortCondition = { price: 1 };
@@ -59,9 +251,14 @@ const getAllProductsFromDB = async (query: IProductQuery) => {
     else if (sort === "oldest") sortCondition = { createdAt: 1 };
   }
 
-  // Execute Aggregation Pipeline for Filtering + Pagination
+  // Fetch Categories for Dropdown
+  const categories = await Product.distinct("category", {
+    isDeleted: { $ne: true },
+  });
+
+  // Aggregation Pipeline Execution
   const pipeline = [
-    ...getBaseProductPipeline(matchConditions, sortCondition, 10000), // Get filtered items
+    ...getBaseProductPipeline(matchConditions, sortCondition, 100000),
     {
       $facet: {
         meta: [{ $count: "total" }],
@@ -72,20 +269,21 @@ const getAllProductsFromDB = async (query: IProductQuery) => {
 
   const result = await Product.aggregate(pipeline);
 
-  const total = result[0]?.meta[0]?.total || 0;
-  const totalPage = Math.ceil(total / limitNumber);
+  const totalProducts = result[0]?.meta[0]?.total || 0;
+  const totalPages = Math.ceil(totalProducts / limitNumber);
 
   return {
-    meta: {
-      page: pageNumber,
-      limit: limitNumber,
-      total,
-      totalPage,
-    },
-    data: result[0]?.data || [],
+    products: result[0]?.data || [],
+    totalProducts,
+    totalPages,
+    currentPage: pageNumber,
+    categories,
   };
 };
 
+/**
+ * 3. Single Product Helper
+ */
 const getSingleProductFromDB = async (productId: string) => {
   if (!Types.ObjectId.isValid(productId)) {
     throw new Error("Invalid Product ID format");
@@ -156,6 +354,7 @@ const getHomeSections = async () => {
 };
 
 export const ProductServices = {
+  createProductIntoDB,
   getAllProductsFromDB,
   getSingleProductFromDB,
   getFlashSaleProducts,

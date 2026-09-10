@@ -6,7 +6,7 @@ export const createShop = async (req: Request, res: Response) => {
   try {
     const shopData = req.body;
     const result = await createShopIntoDB(shopData);
-
+    // console.log(result, req.body);
     res.status(201).json({
       success: true,
       message: "Shop and Collection created successfully!",
@@ -23,10 +23,10 @@ export const createShop = async (req: Request, res: Response) => {
 
 export const updateMyShop = async (req: Request, res: Response) => {
   try {
-    const { ownerId } = req.params;
+    const { shopId } = req.params;
     const updateData = req.body;
 
-    const updatedShop = await Shop.findOneAndUpdate({ ownerId }, updateData, {
+    const updatedShop = await Shop.findByIdAndUpdate(shopId, updateData, {
       new: true,
       runValidators: true,
     });

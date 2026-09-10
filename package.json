@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/Programing360/venRaz-backend#readme",
   "dependencies": {
+    "@google/genai": "^2.21.0",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
     "bcrypt": "^6.0.0",

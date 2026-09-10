@@ -1,34 +1,40 @@
 import { Request, Response } from "express";
-import { createProductIntoDB, ProductServices } from "./product.service";
+import { ProductServices } from "./product.service";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendSuccessResponse } from "../../config/response";
 
-export const createProducts = async (req: Request, res: Response) => {
-  try {
+export const createProducts = catchAsync(
+  async (req: Request, res: Response) => {
     const productData = req.body;
-    const result = await createProductIntoDB(productData);
+    const files = (req.files as Express.Multer.File[]) || [];
+
+    // Authenticated user/seller information (req.user middleware থেকে প্রাপ্ত)
+    const userId = req.user?.userId || productData.seller || "";
+    const sellerId = userId;
+    const shopId = productData.shopId || productData.shop || "";
+    console.log(productData);
+    const result = await ProductServices.createProductIntoDB({
+      payload: productData,
+      files,
+      sellerId,
+      shopId,
+      userId,
+    });
+
     sendSuccessResponse(res, {
       statusCode: 201,
       message: "Product and Collection created successfully!",
       data: result,
     });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Failed to create shop",
-      error,
-    });
-  }
-};
+  },
+);
 
 const getAllProducts = catchAsync(async (req: Request, res: Response) => {
   const result = await ProductServices.getAllProductsFromDB(req.query);
-
   sendSuccessResponse(res, {
     statusCode: 200,
     message: "Products retrieved successfully",
-    meta: result.meta,
-    data: result.data,
+    data: result,
   });
 });
 
@@ -47,11 +53,6 @@ const getSingleProduct = catchAsync(async (req: Request, res: Response) => {
 
 const getHomeSections = catchAsync(async (req: Request, res: Response) => {
   const result = await ProductServices.getHomeSections();
-  // return res.status(200).json({
-  //   success: true,
-  //   message: "Home section products retrieved successfully",
-  //   data: result,
-  // });
   sendSuccessResponse(res, {
     statusCode: 200,
     message: "Home section products retrieved successfully",
@@ -92,6 +93,7 @@ const getNewArrivalProducts = catchAsync(
 );
 
 export const ProductControllers = {
+  createProducts,
   getAllProducts,
   getSingleProduct,
   getHomeSections,

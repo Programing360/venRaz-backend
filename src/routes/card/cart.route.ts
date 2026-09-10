@@ -50,7 +50,7 @@ router.get(
  */
 router.post(
   "/",
-  //   authMiddleware("user", "moderator", "admin"),
+  authMiddleware("user", "moderator", "admin"),
   CartControllers.addToCart,
 );
 

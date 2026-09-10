@@ -29,13 +29,13 @@ app.use(cookieParser());
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 
-// Mount Shop routes from origin/main
-app.use("/api/v1/shops", ShopRoutes);
-app.use("/api/v1/categories", CategoryRoutes);
-app.use("/api/v1/products", productsRoutes);
-app.use("/api/v1/products/seller", SellerProductRoutes);
-app.use("/api/v1/orders", OrderRoutes);
-app.use("/api/v1/seller", SellerOrderRoutes);
+// // Mount Shop routes from origin/main
+// app.use("/api/v1/shops", ShopRoutes);
+// app.use("/api/v1/categories", CategoryRoutes);
+// app.use("/api/v1/products", productsRoutes);
+// app.use("/api/v1/products/seller", SellerProductRoutes);
+// app.use("/api/v1/orders", OrderRoutes);
+// app.use("/api/v1/seller", SellerOrderRoutes);
 
 
 // Root API Endpoint

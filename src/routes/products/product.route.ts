@@ -3,6 +3,8 @@ import {
   createProducts,
   ProductControllers,
 } from "../../models/products/product.controller";
+import { authMiddleware } from "../../middlewares/auth.middleware";
+import { upload } from "../../middlewares/upload.middleware";
 
 const router = express.Router();
 
@@ -86,7 +88,12 @@ const router = express.Router();
  *       400:
  *         description: Bad request
  */
-router.post("/", createProducts);
+router.post(
+  "/",
+  authMiddleware(),
+  upload.array("images", 8),
+  createProducts,
+);
 
 /**
  * @swagger
@@ -139,28 +146,7 @@ router.post("/", createProducts);
  */
 router.get("/", ProductControllers.getAllProducts);
 
-/**
- * @swagger
- * /api/v1/products/{productId}:
- *   get:
- *     summary: Get product details by ID (Populated with Shop, Category, and Seller)
- *     tags: [Products]
- *     parameters:
- *       - in: path
- *         name: productId
- *         required: true
- *         schema:
- *           type: string
- *         description: The unique product ObjectId
- *     responses:
- *       200:
- *         description: Product details retrieved successfully
- *       404:
- *         description: Product not found
- */
-router.get("/:productId", ProductControllers.getSingleProduct);
-
-export const ProductRoutes = router;
+// export const ProductRoutes = router;
 
 /**
  * @swagger
@@ -225,5 +211,26 @@ router.get("/top-rated", ProductControllers.getTopRatedProducts);
  *         description: New arrival products retrieved successfully
  */
 router.get("/new-arrivals", ProductControllers.getNewArrivalProducts);
+
+/**
+ * @swagger
+ * /api/v1/products/{productId}:
+ *   get:
+ *     summary: Get product details by ID (Populated with Shop, Category, and Seller)
+ *     tags: [Products]
+ *     parameters:
+ *       - in: path
+ *         name: productId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The unique product ObjectId
+ *     responses:
+ *       200:
+ *         description: Product details retrieved successfully
+ *       404:
+ *         description: Product not found
+ */
+router.get("/:productId", ProductControllers.getSingleProduct);
 
 export const productsRoutes = router;

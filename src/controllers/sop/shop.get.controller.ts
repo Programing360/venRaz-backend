@@ -3,6 +3,7 @@ import { Shop } from "../../models/sop/sop.model";
 export const getAllShop = async (req: Request, res: Response) => {
   try {
     const shops = await Shop.find();
+    console.log(shops);
     return res.status(200).json({
       success: true,
       message: "Shops fetched successfully!",

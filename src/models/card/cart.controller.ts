@@ -7,7 +7,7 @@ import { CartServices } from "./cart.service";
 const getCart = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.userId;
   const result = await CartServices.getCartFromDB(userId as string);
-
+  console.log(result);
   sendSuccessResponse(res, {
     statusCode: 200,
     message: "Cart retrieved successfully",
@@ -19,7 +19,7 @@ const getCart = catchAsync(async (req: Request, res: Response) => {
 const addToCart = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.userId;
   const result = await CartServices.addToCartInDB(userId as string, req.body);
-
+  console.log(result, userId);
   sendSuccessResponse(res, {
     statusCode: 200,
     message: "Product added to cart successfully",

@@ -1,5 +1,5 @@
 import express from "express";
-import { createShop } from "../../controllers/sop/shop.controller";
+import { createShop, updateMyShop } from "../../controllers/sop/shop.controller";
 import { getAllShop } from "../../controllers/sop/shop.get.controller";
 import { getMyShops } from "../../controllers/sop/shop.my.get.controller";
 import { ReviewController } from "../../models/review/review.controller";
@@ -96,7 +96,7 @@ router.get("/my-shop/:ownerId", getMyShops);
  *       404:
  *         description: No shops found for this owner
  */
-router.patch("/update/my-shop/:ownerId", getMyShops);
+router.patch("/update/my-shop/:shopId", updateMyShop);
 
 /**
  * @openapi

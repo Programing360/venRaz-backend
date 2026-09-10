@@ -11,6 +11,7 @@ export interface IProducts {
   _id?: Types.ObjectId;
   name: string;
   slug: string;
+  userId?: string;
   description: string;
   images: string[];
   price: number;

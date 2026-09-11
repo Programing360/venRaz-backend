@@ -49,7 +49,12 @@ router.post("/sync-guest-orders", authMiddleware(), syncGuestOrders);
  *       201:
  *         description: Order created successfully
  */
-router.post("/", createOrder);
+router.post(
+  "/",
+  authMiddleware("user", "moderator", "admin"),
+  // roleMiddleware("user", "moderator", "admin"),
+  createOrder,
+);
 
 /**
  * @openapi
@@ -66,8 +71,8 @@ router.post("/", createOrder);
  */
 router.get(
   "/my-orders",
-  authMiddleware(),
-  roleMiddleware("user", "moderator", "admin"),
+  authMiddleware("user", "moderator", "admin"),
+  // roleMiddleware("user", "moderator", "admin"),
   getMyOrders,
 );
 

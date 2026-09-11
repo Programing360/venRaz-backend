@@ -28,13 +28,14 @@ export const authMiddleware = (
   ): Promise<void> => {
     try {
       let token: string | undefined;
-
+      
       // ১. Token এক্সট্রাক্ট করা
       if (
         req.headers.authorization &&
         req.headers.authorization.startsWith("Bearer ")
       ) {
         token = req.headers.authorization.split(" ")[1];
+       
       } else if (req.cookies?.accessToken) {
         token = req.cookies.accessToken;
       } else if (req.cookies?.["better-auth.session_token"]) {
@@ -52,7 +53,7 @@ export const authMiddleware = (
       let userId: string | undefined;
       let userEmail: string | undefined;
       let decoded: JwtUserPayload | null = null;
-      
+
       // ২. Session Check (Database)
       // Plain token এবং Hashed token দুটি দিয়েই চেক করা (Better-Auth Support-এর জন্য)
       const hashedToken = createHash("sha256").update(token).digest("hex");
@@ -60,7 +61,7 @@ export const authMiddleware = (
         $or: [{ token: token }, { token: hashedToken }],
       }).populate("userId");
 
-
+      // console.log(sessionData);
       if (sessionData) {
         // Expiry Check
         if (new Date() > new Date(sessionData.expiresAt)) {
@@ -105,7 +106,6 @@ export const authMiddleware = (
         }
       }
 
-
       if (!userId) {
         res.status(401).json({
           success: false,
@@ -116,8 +116,7 @@ export const authMiddleware = (
 
       // ৪. DB থেকে User Check & Blocked Status Check
       const user = await User.findById(userId).catch(() => null);
-
-
+    
       if (user && user.status === "blocked") {
         res.status(403).json({
           success: false,
@@ -136,7 +135,6 @@ export const authMiddleware = (
         });
         return;
       }
-
       // Request Object-এ User সেট করা
       req.user = {
         userId,

@@ -2,16 +2,14 @@ import { Request, Response } from "express";
 import { Order } from "./order.model";
 import { generateTrackingId } from "./generateTrackingId";
 import { authMiddleware } from "../../middlewares/auth.middleware";
-import router from "../../routes";
 
 export const createOrder = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId || null;
     const { items, totalAmount, shippingAddress, paymentMethod, email } =
       req.body;
-
     const trackingId = generateTrackingId();
-// console.log(req.body);
+
     const newOrder = await Order.create({
       user: userId,
       guestEmail: userId ? undefined : email, // Guest হলে ইমেইল সেভ থাকবে
@@ -31,7 +29,7 @@ export const createOrder = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-// order.controller.ts
+
 // order.controller.ts
 export const syncGuestOrders = async (req: Request, res: Response) => {
   try {
@@ -39,12 +37,14 @@ export const syncGuestOrders = async (req: Request, res: Response) => {
     const email = req.user?.email;
 
     if (!userId || !email) {
-      return res.status(400).json({ success: false, message: "User info missing" });
+      return res
+        .status(400)
+        .json({ success: false, message: "User info missing" });
     }
 
     const result = await Order.updateMany(
       { guestEmail: email.toLowerCase(), user: null },
-      { $set: { user: userId } }
+      { $set: { user: userId } },
     );
 
     res.status(200).json({
@@ -56,10 +56,10 @@ export const syncGuestOrders = async (req: Request, res: Response) => {
   }
 };
 
-
 export const getMyOrders = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.userId;
+
     const orders = await Order.find({ user: userId })
       .populate("items.product", "name price images")
       .sort({ createdAt: -1 });
@@ -77,7 +77,7 @@ export const getSingleOrder = async (req: Request, res: Response) => {
   try {
     const { orderId } = req.params;
     const userId = req.user?.userId;
-
+    // console.log(orderId, userId);
     const order = await Order.findOne({ _id: orderId, user: userId }).populate(
       "items.product",
       "name price images brand",

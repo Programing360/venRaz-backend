@@ -1,12 +1,18 @@
-import { Request, Response } from 'express';
-import { catchAsync } from '../../utils/catchAsync';
-import { sendResponse } from '../../utils/response';
-import { UserService } from './user.service';
+import { Request, Response } from "express";
+import { catchAsync } from "../../utils/catchAsync";
+import { sendResponse } from "../../utils/response";
+import { UserService } from "./user.service";
+
+const createUser = catchAsync(async (req: Request, res: Response) => {
+  const userData = req.body;
+  const result = await UserService.createUserProfileFromDB(userData);
+  return result;
+});
 
 const getProfile = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.userId;
   if (!userId) {
-    res.status(401).json({ success: false, message: 'Unauthorized' });
+    res.status(401).json({ success: false, message: "Unauthorized" });
     return;
   }
 
@@ -15,7 +21,7 @@ const getProfile = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: 'User profile retrieved successfully',
+    message: "User profile retrieved successfully",
     data: result,
   });
 });
@@ -23,13 +29,13 @@ const getProfile = catchAsync(async (req: Request, res: Response) => {
 const updateProfile = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.userId;
   if (!userId) {
-    res.status(401).json({ success: false, message: 'Unauthorized' });
+    res.status(401).json({ success: false, message: "Unauthorized" });
     return;
   }
 
   // Parse body if form-data
   let payload = req.body;
-  if (typeof req.body.data === 'string') {
+  if (typeof req.body.data === "string") {
     payload = JSON.parse(req.body.data);
   }
 
@@ -39,7 +45,7 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: 'User profile updated successfully',
+    message: "User profile updated successfully",
     data: result,
   });
 });
@@ -47,7 +53,7 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
 const changePassword = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?.userId;
   if (!userId) {
-    res.status(401).json({ success: false, message: 'Unauthorized' });
+    res.status(401).json({ success: false, message: "Unauthorized" });
     return;
   }
 
@@ -56,11 +62,12 @@ const changePassword = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: 'Password changed successfully',
+    message: "Password changed successfully",
   });
 });
 
 export const UserController = {
+  createUser,
   getProfile,
   updateProfile,
   changePassword,

@@ -1,12 +1,13 @@
 import { Request, Response, NextFunction, RequestHandler } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
-import { User } from "../models/user/user.model";
+import { Session, User } from "../models/user/user.model";
 import { UserRole } from "../models/user/user.interface";
+import { createHash } from "node:crypto";
 
 export interface JwtUserPayload extends JwtPayload {
-  userId: string;
-  email: string;
-  role: UserRole;
+  userId?: string;
+  email?: string;
+  role?: UserRole;
 }
 
 declare global {
@@ -17,7 +18,6 @@ declare global {
   }
 }
 
-// requiredRoles গ্রহণ করার জন্য প্যারামিটার যুক্ত করা হয়েছে
 export const authMiddleware = (
   ...requiredRoles: UserRole[]
 ): RequestHandler => {
@@ -27,12 +27,18 @@ export const authMiddleware = (
     next: NextFunction,
   ): Promise<void> => {
     try {
-      let token = req.headers.authorization;
+      let token: string | undefined;
 
-      if (token && token.startsWith("Bearer ")) {
-        token = token.split(" ")[1];
-      } else if (req.cookies && req.cookies.accessToken) {
+      // ১. Token এক্সট্রাক্ট করা
+      if (
+        req.headers.authorization &&
+        req.headers.authorization.startsWith("Bearer ")
+      ) {
+        token = req.headers.authorization.split(" ")[1];
+      } else if (req.cookies?.accessToken) {
         token = req.cookies.accessToken;
+      } else if (req.cookies?.["better-auth.session_token"]) {
+        token = req.cookies["better-auth.session_token"];
       }
 
       if (!token) {
@@ -43,19 +49,76 @@ export const authMiddleware = (
         return;
       }
 
-      const jwtSecret = process.env.JWT_ACCESS_SECRET || "secret";
-      const decoded = jwt.verify(token, jwtSecret) as JwtUserPayload;
+      let userId: string | undefined;
+      let userEmail: string | undefined;
+      let decoded: JwtUserPayload | null = null;
+      
+      // ২. Session Check (Database)
+      // Plain token এবং Hashed token দুটি দিয়েই চেক করা (Better-Auth Support-এর জন্য)
+      const hashedToken = createHash("sha256").update(token).digest("hex");
+      const sessionData = await Session.findOne({
+        $or: [{ token: token }, { token: hashedToken }],
+      }).populate("userId");
 
-      const user = await User.findById(decoded.userId);
-      if (!user) {
+
+      if (sessionData) {
+        // Expiry Check
+        if (new Date() > new Date(sessionData.expiresAt)) {
+          res.status(401).json({
+            success: false,
+            message: "Session has expired!",
+          });
+          return;
+        }
+
+        // Populated User extract করা
+        if (sessionData.userId) {
+          if (
+            typeof sessionData.userId === "object" &&
+            "_id" in sessionData.userId
+          ) {
+            const userObj = sessionData.userId as any;
+            // console.log(userObj._id.toString());
+            userId = userObj._id.toString();
+            userEmail = userObj.email;
+          } else {
+            userId = sessionData.userId;
+          }
+        }
+      } else {
+        // ৩. Session না পেলে JWT Verify করা (Fallback)
+        try {
+          decoded = jwt.verify(
+            token,
+            process.env.JWT_SECRET || "your-secret-key",
+          ) as JwtUserPayload;
+
+          userId = decoded.userId || decoded.sub;
+          userEmail = decoded.email;
+        } catch (err) {
+          // Token DB-তেও নেই, JWT-তেও Invalid
+          res.status(401).json({
+            success: false,
+            message: "Invalid or expired authentication token!",
+          });
+          return;
+        }
+      }
+
+
+      if (!userId) {
         res.status(401).json({
           success: false,
-          message: "User belonging to this token no longer exists.",
+          message: "Invalid token payload!",
         });
         return;
       }
 
-      if (user.status === "blocked") {
+      // ৪. DB থেকে User Check & Blocked Status Check
+      const user = await User.findById(userId).catch(() => null);
+
+
+      if (user && user.status === "blocked") {
         res.status(403).json({
           success: false,
           message: "Your account has been blocked!",
@@ -63,8 +126,10 @@ export const authMiddleware = (
         return;
       }
 
-      // Role Check Logic (যদি প্রয়োজনীয় রোলস পাস করা থাকে)
-      if (requiredRoles.length > 0 && !requiredRoles.includes(user.role)) {
+      const role = (user?.role || decoded?.role || "user") as UserRole;
+
+      // ৫. Role Authorization Check
+      if (requiredRoles.length > 0 && !requiredRoles.includes(role)) {
         res.status(403).json({
           success: false,
           message: "You do not have permission to perform this action!",
@@ -72,17 +137,18 @@ export const authMiddleware = (
         return;
       }
 
+      // Request Object-এ User সেট করা
       req.user = {
-        userId: user._id.toString(),
-        email: user.email,
-        role: user.role,
+        userId,
+        email: user?.email || userEmail || "",
+        role,
       };
 
       next();
     } catch (error) {
       res.status(401).json({
         success: false,
-        message: "Invalid or expired authentication token!",
+        message: "Authentication failed!",
       });
     }
   };

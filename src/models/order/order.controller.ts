@@ -1,16 +1,20 @@
 import { Request, Response } from "express";
 import { Order } from "./order.model";
 import { generateTrackingId } from "./generateTrackingId";
+import { authMiddleware } from "../../middlewares/auth.middleware";
+import router from "../../routes";
 
 export const createOrder = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?._id;
-    const { items, totalAmount, shippingAddress, paymentMethod } = req.body;
+    const userId = req.user?.userId || null;
+    const { items, totalAmount, shippingAddress, paymentMethod, email } =
+      req.body;
 
     const trackingId = generateTrackingId();
-
+// console.log(req.body);
     const newOrder = await Order.create({
       user: userId,
+      guestEmail: userId ? undefined : email, // Guest হলে ইমেইল সেভ থাকবে
       trackingId,
       items,
       totalAmount,
@@ -27,10 +31,35 @@ export const createOrder = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+// order.controller.ts
+// order.controller.ts
+export const syncGuestOrders = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const email = req.user?.email;
+
+    if (!userId || !email) {
+      return res.status(400).json({ success: false, message: "User info missing" });
+    }
+
+    const result = await Order.updateMany(
+      { guestEmail: email.toLowerCase(), user: null },
+      { $set: { user: userId } }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: `${result.modifiedCount} guest orders synced successfully.`,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 
 export const getMyOrders = async (req: Request, res: Response) => {
   try {
-    const userId = req.user?._id;
+    const userId = req.user?.userId;
     const orders = await Order.find({ user: userId })
       .populate("items.product", "name price images")
       .sort({ createdAt: -1 });
@@ -47,7 +76,7 @@ export const getMyOrders = async (req: Request, res: Response) => {
 export const getSingleOrder = async (req: Request, res: Response) => {
   try {
     const { orderId } = req.params;
-    const userId = req.user?._id;
+    const userId = req.user?.userId;
 
     const order = await Order.findOne({ _id: orderId, user: userId }).populate(
       "items.product",
@@ -72,7 +101,7 @@ export const getSingleOrder = async (req: Request, res: Response) => {
 export const cancelOrder = async (req: Request, res: Response) => {
   try {
     const { orderId } = req.params;
-    const userId = req.user?._id;
+    const userId = req.user?.userId;
 
     const order = await Order.findOne({ _id: orderId, user: userId });
 

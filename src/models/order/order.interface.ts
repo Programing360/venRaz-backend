@@ -16,7 +16,8 @@ export interface IOrderItem {
 }
 
 export interface IOrder {
-  user: Types.ObjectId;
+  user?: Types.ObjectId | null; // Optional (Guest checkout-এর জন্য)
+  guestEmail?: string;
   trackingId: string;
   items: IOrderItem[];
   totalAmount: number;

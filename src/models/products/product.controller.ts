@@ -12,7 +12,7 @@ export const createProducts = catchAsync(
     const userId = req.user?.userId || productData.seller || "";
     const sellerId = userId;
     const shopId = productData.shopId || productData.shop || "";
-    console.log(productData);
+    // console.log(productData);
     const result = await ProductServices.createProductIntoDB({
       payload: productData,
       files,

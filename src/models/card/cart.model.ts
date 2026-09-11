@@ -19,7 +19,7 @@ const cartItemSchema = new Schema<ICartItem>(
       required: true,
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const cartSchema = new Schema<ICart>(
@@ -38,14 +38,14 @@ const cartSchema = new Schema<ICart>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Helper method to calculate cart total
 cartSchema.methods.calculateTotalPrice = function () {
   this.totalPrice = this.items.reduce(
     (acc: number, item: ICartItem) => acc + item.price * item.quantity,
-    0
+    0,
   );
 };
 

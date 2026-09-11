@@ -309,9 +309,11 @@ const getFlashSaleProducts = async (limit = 10) => {
     isFlashSale: true,
     flashSaleEndDate: { $gt: new Date() },
   };
-  return await Product.aggregate(
+
+  const result = await Product.aggregate(
     getBaseProductPipeline(match, { createdAt: -1 }, limit),
   );
+  return result
 };
 
 const getTopRatedProducts = async (limit = 10) => {

@@ -5,8 +5,15 @@ const orderSchema = new Schema<IOrder>(
   {
     user: {
       type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+      ref: "user",
+      required: false, // Optional
+      default: null,
+    },
+    guestEmail: {
+      type: String,
+      required: false,
+      lowercase: true,
+      trim: true,
     },
     trackingId: {
       type: String,

@@ -6,136 +6,121 @@ import {
   getSingleOrder,
   cancelOrder,
   trackOrder,
+  syncGuestOrders,
 } from "../../models/order/order.controller";
+import { authMiddleware } from "../../middlewares/auth.middleware";
+import { roleMiddleware } from "../../middlewares/role.middleware";
 
 const router = Router();
+
 /**
- * @swagger
- * /api/v1/products/orders/track/:trackingId:
+ * @openapi
+ * /api/v1/orders/track/{trackingId}:
  *   get:
- *     summary: Track order by tracking ID
- *     tags: [Orders]
+ *     summary: Track order by tracking ID (Public)
+ *     tags:
+ *       - Orders
+ *     parameters:
+ *       - in: path
+ *         name: trackingId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         example: TRK-2026-987654
  *     responses:
  *       200:
- *         description: products data retrieved successfully
+ *         description: Order tracking information retrieved successfully
+ *       404:
+ *         description: Order not found
  */
-
 router.get("/track/:trackingId", trackOrder);
-
+// order.route.ts
+router.post("/sync-guest-orders", authMiddleware(), syncGuestOrders);
 /**
- * @swagger
- * /api/v1/orders:
+ * @openapi
+ * api/v1/orders:
  *   post:
  *     summary: Create a new order
  *     tags:
  *       - Orders
  *     security:
  *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - name
- *               - slug
- *               - description
- *               - images
- *               - price
- *               - stock
- *               - category
- *               - shop
- *               - seller
- *             properties:
- *               name:
- *                 type: string
- *                 example: Wireless Headphones
- *               slug:
- *                 type: string
- *                 example: wireless-headphones
- *               description:
- *                 type: string
- *                 example: Premium noise-canceling headphones
- *               images:
- *                 type: array
- *                 items:
- *                   type: string
- *                 example: ["https://example.com/image.jpg"]
- *               price:
- *                 type: number
- *                 example: 150
- *               discount:
- *                 type: number
- *                 example: 10
- *               stock:
- *                 type: number
- *                 example: 50
- *               category:
- *                 type: string
- *                 example: 64f123456789a1b2c3d4e5f6
- *               shop:
- *                 type: string
- *                 example: 64f123456789a1b2c3d4e5f7
- *               seller:
- *                 type: string
- *                 example: 64f123456789a1b2c3d4e5f8
- *               brand:
- *                 type: string
- *                 example: Sony
- *               isFeatured:
- *                 type: boolean
- *                 example: true
- *               isFlashSale:
- *                 type: boolean
- *                 example: true
- *               flashSalePrice:
- *                 type: number
- *                 example: 120
- *               flashSaleEndDate:
- *                 type: string
- *                 format: date-time
- *                 example: 2026-12-31T23:59:59.000Z
  *     responses:
  *       201:
- *         description: Product created successfully
- *       400:
- *         description: Bad request
+ *         description: Order created successfully
  */
-
 router.post("/", createOrder);
+
 /**
- * @swagger
- * /api/v1/products/orders/my-orders:
+ * @openapi
+ * /api/v1/orders/my-orders:
  *   get:
- *     summary: Get user's orders
- *     tags: [Orders]
+ *     summary: Get logged-in user's orders
+ *     tags:
+ *       - Orders
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: products data retrieved successfully
+ *         description: List of user orders fetched successfully
  */
-router.get("/my-orders", getMyOrders);
+router.get(
+  "/my-orders",
+  authMiddleware(),
+  roleMiddleware("user", "moderator", "admin"),
+  getMyOrders,
+);
+
 /**
- * @swagger
- * /api/v1/products/orders/:orderId:
+ * @openapi
+ * /api/v1/orders/{orderId}:
  *   get:
- *     summary: Get order details by ID
- *     tags: [Orders]
+ *     summary: Get single order by ID
+ *     tags:
+ *       - Orders
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
- *         description: products data retrieved successfully
+ *         description: Order details fetched successfully
  */
-router.get("/:orderId", getSingleOrder);
+router.get(
+  "/:orderId",
+  authMiddleware(),
+  roleMiddleware("user", "moderator", "admin"),
+  getSingleOrder,
+);
+
 /**
- * @swagger
- * /api/v1/products/orders/:orderId/cancel:
+ * @openapi
+ * /api/v1/orders/{orderId}/cancel:
  *   patch:
  *     summary: Cancel an order
- *     tags: [Orders]
+ *     tags:
+ *       - Orders
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
- *         description: products data retrieved successfully
+ *         description: Order cancelled successfully
  */
-router.patch("/:orderId/cancel", cancelOrder);
+router.patch(
+  "/:orderId/cancel",
+  authMiddleware(),
+  roleMiddleware("user", "moderator", "admin"),
+  cancelOrder,
+);
 
 export const OrderRoutes = router;

@@ -14,10 +14,12 @@ export const roleMiddleware = (...allowedRoles: UserRole[]): RequestHandler => {
         return;
       }
 
-      if (!allowedRoles.includes(user.role)) {
+      const userRole = user.role ?? "user";
+
+      if (!allowedRoles.includes(userRole)) {
         res.status(403).json({
           success: false,
-          message: `Access denied! Require one of roles: [${allowedRoles.join(", ")}]. You have role: '${user.role}'`,
+          message: `Access denied! Require one of roles: [${allowedRoles.join(", ")}]. You have role: '${userRole}'`,
         });
         return;
       }

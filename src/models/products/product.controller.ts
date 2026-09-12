@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import { ProductServices } from "./product.service";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendSuccessResponse } from "../../config/response";
+import { getBaseProductPipeline } from "./product.pipeline";
+import { Product } from "./product.model";
 
 export const createProducts = catchAsync(
   async (req: Request, res: Response) => {
@@ -53,6 +55,7 @@ const getSingleProduct = catchAsync(async (req: Request, res: Response) => {
 
 const getHomeSections = catchAsync(async (req: Request, res: Response) => {
   const result = await ProductServices.getHomeSections();
+  // console.log(result);
   sendSuccessResponse(res, {
     statusCode: 200,
     message: "Home section products retrieved successfully",
@@ -60,15 +63,30 @@ const getHomeSections = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const getFlashSaleProducts = catchAsync(async (req: Request, res: Response) => {
-  const limit = Number(req.query.limit) || 10;
-  const result = await ProductServices.getFlashSaleProducts(limit);
-  sendSuccessResponse(res, {
-    statusCode: 200,
-    message: "Flash sale products retrieved successfully",
-    data: result,
-  });
-});
+const getFlashSaleProducts = catchAsync(
+  async (req: Request, res: Response) => {
+    const limit = Number(req.query.limit) || 10;
+
+    // Explicitly add flash sale filter condition
+    const matchCondition = {
+      isFlashSale: true, // MongoDB Database field schema matching confirm koren
+      flashSaleEndDate: { $gt: new Date() }, // Only active/upcoming flash sales
+    };
+
+    const pipeline = getBaseProductPipeline(
+      matchCondition,
+      { createdAt: -1 },
+      limit,
+    );
+
+    const result = await Product.aggregate(pipeline);
+    sendSuccessResponse(res, {
+      statusCode: 200,
+      message: "Flash sale products retrieved successfully",
+      data: result,
+    });
+  },
+);
 
 const getTopRatedProducts = catchAsync(async (req: Request, res: Response) => {
   const limit = Number(req.query.limit) || 10;

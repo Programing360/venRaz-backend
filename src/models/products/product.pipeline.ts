@@ -17,7 +17,7 @@ export const getBaseProductPipeline = (
     {
       $lookup: {
         from: "categories",
-        localField: "categoryId",
+        localField: "category",
         foreignField: "_id",
         as: "category",
       },
@@ -27,7 +27,7 @@ export const getBaseProductPipeline = (
     {
       $lookup: {
         from: "shops",
-        localField: "shopId",
+        localField: "shop",
         foreignField: "_id",
         as: "shop",
       },
@@ -37,7 +37,7 @@ export const getBaseProductPipeline = (
     {
       $lookup: {
         from: "users",
-        localField: "sellerId",
+        localField: "seller",
         foreignField: "_id",
         as: "seller",
       },

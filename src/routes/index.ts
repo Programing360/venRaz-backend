@@ -15,6 +15,7 @@ import { OrderRoutes } from "./order/order.route";
 import { CartRoutes } from "./card/cart.route";
 import { CheckoutRoutes } from "../models/coupon/checkout.routes";
 import { AIRoutes } from "../services/ai/ai.routes";
+import { ChatRoutes } from "./chat/chat.route";
 
 const router = Router();
 
@@ -38,7 +39,11 @@ const moduleRoutes = [
   { path: "/cart", route: CartRoutes },
   { path: "/wishlist", route: WishlistRoutes },
   { path: "/reviews", route: ReviewRoutes },
-  { path: "/ai", route: AIRoutes }
+  { path: "/ai", route: AIRoutes },
+  {
+    path: "/chat",
+    route: ChatRoutes,
+  },
 ];
 
 moduleRoutes.forEach((route) => router.use(route.path, route.route));

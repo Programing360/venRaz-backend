@@ -88,12 +88,7 @@ const router = express.Router();
  *       400:
  *         description: Bad request
  */
-router.post(
-  "/",
-  authMiddleware(),
-  upload.array("images", 8),
-  createProducts,
-);
+router.post("/", authMiddleware(), upload.array("images", 8), createProducts);
 
 /**
  * @swagger

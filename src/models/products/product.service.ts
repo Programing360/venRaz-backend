@@ -44,6 +44,11 @@ const normalizePayload = (
       const num = Number(value);
       normalized[key] = Number.isFinite(num) ? num : undefined;
     }
+    if (key === "flashSaleEndDate") {
+      const date = value ? new Date(String(value)) : undefined;
+      normalized[key] =
+        date && !Number.isNaN(date.getTime()) ? date : undefined;
+    }
   }
   return normalized;
 };
@@ -60,9 +65,10 @@ const uploadImageToCloudinary = (
   }
 
   return new Promise((resolve, reject) => {
-    const attempt = (
-      options: { folder: string; background_removal?: string },
-    ) => {
+    const attempt = (options: {
+      folder: string;
+      background_removal?: string;
+    }) => {
       const stream = cloudinary.uploader.upload_stream(
         options,
         (error, result) => {
@@ -143,7 +149,8 @@ export const createProductIntoDB = async ({
   productData.category = new Types.ObjectId(categoryValue);
 
   // seller resolve
-  const seller = sellerId && Types.ObjectId.isValid(sellerId) ? sellerId : userId;
+  const seller =
+    sellerId && Types.ObjectId.isValid(sellerId) ? sellerId : userId;
   if (!seller || !Types.ObjectId.isValid(seller)) {
     throw new AppError("Seller is not authenticated", 401);
   }
@@ -159,7 +166,10 @@ export const createProductIntoDB = async ({
     }
   }
   if (!productData.shop) {
-    throw new AppError("Shop not found for this seller. Create a shop first.", 400);
+    throw new AppError(
+      "Shop not found for this seller. Create a shop first.",
+      400,
+    );
   }
 
   return await Product.create(productData);
@@ -168,8 +178,9 @@ export const createProductIntoDB = async ({
 /**
  * 2. Get All Products with Normal + AI Smart Search Support
  */
-const getAllProductsFromDB = async (
-  query: IProductQuery & { useAI?: string },
+
+export const getAllProductsFromDB = async (
+  query: IProductQuery & { useAI?: string; userFrequentCategory?: string },
 ) => {
   const {
     page = "1",
@@ -180,6 +191,7 @@ const getAllProductsFromDB = async (
     maxPrice,
     sort,
     useAI,
+    userFrequentCategory,
   } = query;
 
   const pageNumber = Math.max(1, Number(page));
@@ -192,95 +204,168 @@ const getAllProductsFromDB = async (
 
   let searchKeyword = search;
   let targetCategory = category;
+  let targetBrand = "";
+  let computedExactPrice: number | null = null;
   let computedMinPrice = minPrice;
   let computedMaxPrice = maxPrice;
 
-  // 🤖 AI Smart Search Activation (If useAI === "true")
+  // AI Smart Search সক্রিয় থাকলে
   if (search && useAI === "true") {
-    try {
-      const aiParsed = await parseSearchQueryWithAI(search);
-      if (aiParsed.searchKeyword) searchKeyword = aiParsed.searchKeyword;
-      if (aiParsed.category && !targetCategory)
-        targetCategory = aiParsed.category;
-      if (aiParsed.minPrice && !computedMinPrice)
-        computedMinPrice = String(aiParsed.minPrice);
-      if (aiParsed.maxPrice && !computedMaxPrice)
-        computedMaxPrice = String(aiParsed.maxPrice);
-    } catch (error) {
-      console.error(
-        "AI Search Parse Error, falling back to standard search:",
-        error,
-      );
-    }
+    const aiParsed = await parseSearchQueryWithAI(search);
+
+    if (aiParsed.searchKeyword !== undefined)
+      searchKeyword = aiParsed.searchKeyword;
+    if (aiParsed.category && !targetCategory)
+      targetCategory = aiParsed.category;
+    if (aiParsed.brand) targetBrand = aiParsed.brand;
+    if (aiParsed.exactPrice) computedExactPrice = Number(aiParsed.exactPrice);
+    if (aiParsed.minPrice && !computedMinPrice)
+      computedMinPrice = String(aiParsed.minPrice);
+    if (aiParsed.maxPrice && !computedMaxPrice)
+      computedMaxPrice = String(aiParsed.maxPrice);
   }
 
-  // Match Search Keyword across Name, Description, and Brand
-  if (searchKeyword) {
-    matchConditions.$or = [
-      { name: { $regex: searchKeyword, $options: "i" } },
-      { description: { $regex: searchKeyword, $options: "i" } },
-      { brand: { $regex: searchKeyword, $options: "i" } },
+  // 🎯 ১. টেক্সট ও নাম্বার সার্চ সমন্বয় (FIXED FOR APPLE MACBOOK)
+  if (searchKeyword && searchKeyword.trim() !== "") {
+    const trimmed = searchKeyword.trim();
+    const cleanNumberSearch = trimmed.replace(/[^0-9.]/g, "");
+    const numericValue = Number(cleanNumberSearch);
+    const isNumber = cleanNumberSearch !== "" && !isNaN(numericValue);
+
+    // ইনপুট স্ট্রিংকে স্পেস দিয়ে শব্দে বিভক্ত করা (e.g. "macbook" বা "apple macbook")
+    const keywords = trimmed.split(/\s+/).filter(Boolean);
+
+    // প্রতিটি শব্দের জন্য dynamic regex pattern (Case-Insensitive 'i')
+    const keywordRegexes = keywords.map((kw) => new RegExp(kw, "i"));
+
+    // Title/Name, Description, Brand, Tags সবখানে চেক
+    const wordMatches = keywordRegexes.map((word) => ({
+      $or: [
+        { name: { $regex: word, $options: "i" } },
+        { title: { $regex: word, $options: "i" } }, // Schema-তে title থাকলেও যেন ম্যাচ করে
+        { description: { $regex: word, $options: "i" } },
+        { brand: { $regex: word, $options: "i" } },
+        { tags: { $regex: word, $options: "i" } },
+      ],
+    }));
+
+    const orConditions: any[] = [
+      // ১. নাম/Title, Description, Brand, Tags-এ শব্দের উপস্থিতি চেক
+      { name: { $in: keywordRegexes } },
+      { title: { $in: keywordRegexes } },
+      { brand: { $in: keywordRegexes } },
+      { description: { $in: keywordRegexes } },
+      { tags: { $in: keywordRegexes } },
+
+      // ২. সম্পূর্ণ বাক্যাংশ হিসেবে চেক করা (অতিরিক্ত নিরাপত্তার জন্য)
+      { name: { $regex: trimmed, $options: "i" } },
+      { title: { $regex: trimmed, $options: "i" } },
+      { brand: { $regex: trimmed, $options: "i" } },
+
+      // ৩. প্রতিটি শব্দকে আলাদাভাবে Match করানোর জন্য $and array
+      {
+        $and: keywords.map((kw) => ({
+          $or: [
+            { name: { $regex: kw, $options: "i" } },
+            { title: { $regex: kw, $options: "i" } },
+            { brand: { $regex: kw, $options: "i" } },
+            { description: { $regex: kw, $options: "i" } },
+          ],
+        })),
+      },
     ];
+
+    // ইউজার যদি সংখ্যা বা টাকার অ্যামাউন্ট দিয়ে সার্চ করে
+    if (computedExactPrice) {
+      orConditions.push({ price: computedExactPrice });
+    } else if (isNumber) {
+      orConditions.push({
+        price: {
+          $gte: Math.floor(numericValue * 0.8),
+          $lte: Math.ceil(numericValue * 1.2),
+        },
+      });
+    }
+
+    matchConditions.$or = orConditions;
   }
 
-  // Filter by Category
+  // ২. ব্র্যান্ড ফিল্টারিং
+  if (targetBrand) {
+    matchConditions.brand = { $regex: new RegExp(`^${targetBrand}$`, "i") };
+  }
+
+  // ৩. ক্যাটাগরি ফিল্টারিং
   if (targetCategory) {
     if (Types.ObjectId.isValid(targetCategory)) {
       matchConditions.category = new Types.ObjectId(targetCategory);
     } else {
       matchConditions.category = {
-        $regex: new RegExp(`^${targetCategory}$`, "i"),
+        $regex: new RegExp(targetCategory, "i"),
       };
     }
   }
 
-  // Filter by Price Range
-  if (computedMinPrice || computedMaxPrice) {
+  // ৪. এক্সপ্লিসিট প্রাইস রেঞ্জ ফিল্টারিং
+  if (!computedExactPrice && (computedMinPrice || computedMaxPrice)) {
     const priceCondition: Record<string, number> = {};
     if (computedMinPrice) priceCondition.$gte = Number(computedMinPrice);
     if (computedMaxPrice) priceCondition.$lte = Number(computedMaxPrice);
     matchConditions.price = priceCondition;
   }
 
-  // Dynamic Sorting
+  // সোর্টিং কনফিগারেশন
   let sortCondition: Record<string, 1 | -1> = { createdAt: -1 };
-  if (sort) {
-    if (sort === "price-asc") sortCondition = { price: 1 };
-    else if (sort === "price-desc") sortCondition = { price: -1 };
-    else if (sort === "rating") sortCondition = { rating: -1 };
-    else if (sort === "oldest") sortCondition = { createdAt: 1 };
+  if (sort === "price-asc") sortCondition = { price: 1 };
+  else if (sort === "price-desc") sortCondition = { price: -1 };
+
+  // Personalized Category Preference Sorting
+  if (userFrequentCategory && Types.ObjectId.isValid(userFrequentCategory)) {
+    sortCondition = { userPreferenceScore: -1, ...sortCondition };
   }
 
-  // Fetch Categories for Dropdown
-  const categories = await Product.distinct("category", {
-    isDeleted: { $ne: true },
-  });
+  // পাইপলাইন তৈরি
+  const pipeline: any[] = [];
 
-  // Aggregation Pipeline Execution
-  const pipeline = [
-    ...getBaseProductPipeline(matchConditions, sortCondition, 100000),
-    {
-      $facet: {
-        meta: [{ $count: "total" }],
-        data: [{ $skip: skip }, { $limit: limitNumber }],
+  // Personalized Category Score স্টেজ যুক্ত করা (যদি থাকে)
+  if (userFrequentCategory && Types.ObjectId.isValid(userFrequentCategory)) {
+    pipeline.push({
+      $addFields: {
+        userPreferenceScore: {
+          $cond: {
+            if: {
+              $eq: ["$category", new Types.ObjectId(userFrequentCategory)],
+            },
+            then: 1,
+            else: 0,
+          },
+        },
       },
+    });
+  }
+
+  // বেস পাইপলাইন মার্জ করা
+  pipeline.push(
+    ...getBaseProductPipeline(matchConditions, sortCondition, 100000),
+  );
+
+  // ফাইনাল Facet (Pagination & Meta) যুক্ত করা
+  pipeline.push({
+    $facet: {
+      meta: [{ $count: "total" }],
+      data: [{ $skip: skip }, { $limit: limitNumber }],
     },
-  ];
+  });
 
   const result = await Product.aggregate(pipeline);
 
-  const totalProducts = result[0]?.meta[0]?.total || 0;
-  const totalPages = Math.ceil(totalProducts / limitNumber);
-
   return {
     products: result[0]?.data || [],
-    totalProducts,
-    totalPages,
+    totalProducts: result[0]?.meta[0]?.total || 0,
+    totalPages: Math.ceil((result[0]?.meta[0]?.total || 0) / limitNumber),
     currentPage: pageNumber,
-    categories,
   };
 };
-
 /**
  * 3. Single Product Helper
  */
@@ -304,16 +389,28 @@ const getSingleProductFromDB = async (productId: string) => {
   return result[0];
 };
 
-const getFlashSaleProducts = async (limit = 10) => {
-  const match = {
-    isFlashSale: true,
-    flashSaleEndDate: { $gt: new Date() },
-  };
+export const getFlashSaleProducts = async (query: Record<string, unknown>) => {
+  const matchCondition: Record<string, unknown> = {};
 
-  const result = await Product.aggregate(
-    getBaseProductPipeline(match, { createdAt: -1 }, limit),
+  // Check if isFlashSale query parameter is passed
+  if (query.isFlashSale !== undefined) {
+    matchCondition.isFlashSale = query.isFlashSale === "true";
+  }
+
+  // Sort and Limit dynamic framing
+  const limitCount = Number(query.limit) || 10;
+  const sortCondition: Record<string, 1 | -1> =
+    query.sortBy === "price" ? { price: 1 } : { createdAt: -1 };
+
+  // Generate Mongoose aggregate pipeline
+  const pipeline = getBaseProductPipeline(
+    matchCondition,
+    sortCondition,
+    limitCount,
   );
-  return result
+
+  const result = await Product.aggregate(pipeline);
+  return result;
 };
 
 const getTopRatedProducts = async (limit = 10) => {

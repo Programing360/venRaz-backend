@@ -7,6 +7,26 @@ import { Shop } from "../sop/sop.model";
 import { getBaseProductPipeline } from "./product.pipeline";
 import { parseSearchQueryWithAI } from "../../services/ai/ai.service";
 import { AppError } from "../../utils/AppError";
+
+// Active flash sale filter. flashSaleEndDate may be stored as a proper Date
+// (created via API) or as an ISO string (seed data). $convert normalizes both
+// so the $gt comparison works regardless of stored type.
+export const activeFlashSaleFilter = () => ({
+  isFlashSale: true,
+  $expr: {
+    $gt: [
+      {
+        $convert: {
+          input: "$flashSaleEndDate",
+          to: "date",
+          onError: 0,
+          onNull: 0,
+        },
+      },
+      new Date(),
+    ],
+  },
+});
 // AI Search Service Import
 
 // Cloudinary Configuration
@@ -298,7 +318,10 @@ export const getAllProductsFromDB = async (
   // ৩. ক্যাটাগরি ফিল্টারিং
   if (targetCategory) {
     if (Types.ObjectId.isValid(targetCategory)) {
-      matchConditions.category = new Types.ObjectId(targetCategory);
+      // Stored values may be ObjectId (new products) or legacy string -> match both
+      matchConditions.category = {
+        $in: [new Types.ObjectId(targetCategory), targetCategory],
+      };
     } else {
       matchConditions.category = {
         $regex: new RegExp(targetCategory, "i"),
@@ -433,7 +456,7 @@ const getHomeSections = async () => {
       ),
       Product.aggregate(
         getBaseProductPipeline(
-          { isFlashSale: true, flashSaleEndDate: { $gt: new Date() } },
+          activeFlashSaleFilter(),
           { createdAt: -1 },
           8,
         ),

@@ -50,3 +50,32 @@ cartSchema.methods.calculateTotalPrice = function () {
 };
 
 export const Cart = model<ICart>("Cart", cartSchema);
+
+// const abandonedCartSchema = new Schema(
+//   {
+//     userId: { type: Schema.Types.ObjectId, ref: "User" }, // যদি লগইন করা ইউজার হয়
+//     guestInfo: {
+//       name: String,
+//       email: String,
+//       phone: String,
+//       address: String,
+//     },
+//     items: [
+//       {
+//         productId: { type: Schema.Types.ObjectId, ref: "Product" },
+//         quantity: Number,
+//         price: Number,
+//       },
+//     ],
+//     totalAmount: Number,
+//     status: {
+//       type: String,
+//       enum: ["PENDING", "RECOVERED", "EXPIRED"],
+//       default: "PENDING",
+//     },
+//     recoveryEmailSent: { type: Boolean, default: false },
+//   },
+//   { timestamps: true },
+// );
+
+// export const AbandonedCart = model("AbandonedCart", abandonedCartSchema);

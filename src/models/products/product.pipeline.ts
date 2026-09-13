@@ -19,35 +19,47 @@ export const getBaseProductPipeline = (
         from: "categories",
         localField: "category",
         foreignField: "_id",
-        as: "category",
+        as: "categoryLookup",
       },
     },
-    { $unwind: { path: "$category", preserveNullAndEmptyArrays: true } },
+    { $unwind: { path: "$categoryLookup", preserveNullAndEmptyArrays: true } },
     // Populate Shop
     {
       $lookup: {
         from: "shops",
         localField: "shop",
         foreignField: "_id",
-        as: "shop",
+        as: "shopLookup",
       },
     },
-    { $unwind: { path: "$shop", preserveNullAndEmptyArrays: true } },
+    { $unwind: { path: "$shopLookup", preserveNullAndEmptyArrays: true } },
     // Populate Seller
     {
       $lookup: {
         from: "users",
         localField: "seller",
         foreignField: "_id",
-        as: "seller",
+        as: "sellerLookup",
       },
     },
-    { $unwind: { path: "$seller", preserveNullAndEmptyArrays: true } },
+    { $unwind: { path: "$sellerLookup", preserveNullAndEmptyArrays: true } },
+    // Merge populated docs back into category/shop/seller, but keep the raw
+    // ObjectId/string value when no referenced document exists (legacy backfill).
+    {
+      $addFields: {
+        category: { $ifNull: ["$categoryLookup", "$category"] },
+        shop: { $ifNull: ["$shopLookup", "$shop"] },
+        seller: { $ifNull: ["$sellerLookup", "$seller"] },
+      },
+    },
     // Clean required fields
     {
       $project: {
         "seller.password": 0,
         "seller.role": 0,
+        categoryLookup: 0,
+        shopLookup: 0,
+        sellerLookup: 0,
       },
     },
     { $sort: sortCondition },

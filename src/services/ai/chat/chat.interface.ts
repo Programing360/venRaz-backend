@@ -1,3 +1,5 @@
+import { IChatMessage } from "./chatHistory.model";
+
 export type IntentType =
   | "SEARCH_PRODUCT"
   | "PRODUCT_ADVICE"
@@ -22,6 +24,8 @@ export interface AIIntentResult {
 
 export interface IChatPayload {
   message: string;
+  image?: string;
   userFrequentCategory?: string;
+  history?: IChatMessage[];
   userId?: string;
 }

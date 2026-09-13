@@ -50,6 +50,11 @@ const userSchema = new Schema<IUserDocument>(
 
 export const User = model<IUserDocument>("user", userSchema, "user");
 
+// Alias registration so Populate with ref: "User" (capital U) resolves too.
+// The canonical model name is lowercase "user" (used by Better-Auth + auth middleware),
+// but several schemas reference the capitalized form.
+mongoose.model("User", userSchema, "user");
+
 interface ISession extends Document {
   token: string;
   userId: mongoose.Types.ObjectId;

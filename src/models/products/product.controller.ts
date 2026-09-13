@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { ProductServices } from "./product.service";
+import { ProductServices, activeFlashSaleFilter } from "./product.service";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendSuccessResponse } from "../../config/response";
 import { getBaseProductPipeline } from "./product.pipeline";
@@ -67,11 +67,9 @@ const getFlashSaleProducts = catchAsync(
   async (req: Request, res: Response) => {
     const limit = Number(req.query.limit) || 10;
 
-    // Explicitly add flash sale filter condition
-    const matchCondition = {
-      isFlashSale: true, // MongoDB Database field schema matching confirm koren
-      flashSaleEndDate: { $gt: new Date() }, // Only active/upcoming flash sales
-    };
+    // Explicitly add flash sale filter condition.
+    // Handles both Date type and ISO string stored flashSaleEndDate values.
+    const matchCondition = activeFlashSaleFilter();
 
     const pipeline = getBaseProductPipeline(
       matchCondition,

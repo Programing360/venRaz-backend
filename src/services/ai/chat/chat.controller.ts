@@ -1,10 +1,11 @@
 import { Request, Response } from "express";
 import { processChatMessageService } from "./chat.service";
 import { ChatMessage } from "./chatHistory.model";
+import { User } from "../../../models/user/user.model";
 
 export const handleChatMessage = async (req: Request, res: Response) => {
   try {
-    const { message, userFrequentCategory } = req.body;
+    const { message, userFrequentCategory, userId, email } = req.body;
 
     if (!message || message.trim() === "") {
       return res.status(400).json({
@@ -12,11 +13,31 @@ export const handleChatMessage = async (req: Request, res: Response) => {
         message: "Message is required",
       });
     }
-    console.log(req.user);
+
+    let databaseUserId: string | undefined = undefined;
+
+    // 🎯 ১. ডাটাবেজ থেকে User Collection এ সার্চ করা
+    if (userId) {
+      // যদি ID পাঠানো হয়ে থাকে
+      const dbUser = await User.findById(userId);
+      if (dbUser) {
+        databaseUserId = String(dbUser._id);
+      }
+    } else if (email) {
+      // যদি Email পাঠানো হয়ে থাকে
+      const dbUser = await User.findOne({ email });
+      if (dbUser) {
+        databaseUserId = String(dbUser._id);
+      }
+    }
+
+    console.log("Database User Found ID:", databaseUserId);
+
+    // 🎯 ২. সার্ভিস লেয়ারে ডাটাবেজ থেকে পাওয়া _id পাঠানো
     const result = await processChatMessageService({
       message,
       userFrequentCategory,
-      userId: req.user?._id, // Auth Middleware থাকলে
+      userId: databaseUserId,
     });
 
     return res.status(200).json({
